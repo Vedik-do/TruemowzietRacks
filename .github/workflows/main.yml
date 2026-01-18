@@ -1,0 +1,74 @@
+name: build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # ForgeGradle 6.x (MC 1.20.1) does NOT support Gradle 9.x.
+      - name: Set up Gradle 8.1.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.1.1"
+
+      # Finds the folder that actually contains your mod project (root or subfolder)
+      - name: Locate Gradle project
+        id: locate
+        shell: bash
+        run: |
+          set -e
+          DIR="$(find . -maxdepth 5 -type f -name gradlew -print -quit | xargs -r dirname || true)"
+          if [ -z "$DIR" ]; then
+            DIR="$(find . -maxdepth 5 -type f \( -name build.gradle -o -name build.gradle.kts \) -print -quit | xargs -r dirname || true)"
+          fi
+          if [ -z "$DIR" ]; then
+            echo "ERROR: No Gradle project found (missing build.gradle/gradlew)."
+            exit 1
+          fi
+          DIR="${DIR#./}"
+          [ -z "$DIR" ] && DIR="."
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Make gradlew executable (if present)
+        shell: bash
+        working-directory: ${{ steps.locate.outputs.dir }}
+        run: |
+          if [ -f "./gradlew" ]; then chmod +x ./gradlew; fi
+
+      - name: Build
+        shell: bash
+        working-directory: ${{ steps.locate.outputs.dir }}
+        run: |
+          set -e
+          if [ -f "./gradlew" ]; then
+            ./gradlew clean build --no-daemon
+          else
+            gradle clean build --no-daemon
+          fi
+
+      - name: Upload built jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: mod-jars
+          path: |
+            ${{ steps.locate.outputs.dir }}/build/libs/*.jar
+            !${{ steps.locate.outputs.dir }}/build/libs/*-sources.jar
+            !${{ steps.locate.outputs.dir }}/build/libs/*-javadoc.jar
