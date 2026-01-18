@@ -1,0 +1,25 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="mowziestrackscompat"
+version="1.0.0"
+displayName="Mowzie's Tracks Compat"
+description='''
+Adds Mowzie's Mobs boss music support and forces it to override other background music (including OverhauledMusic) while a boss is near.
+'''
+
+[[dependencies.mowziestrackscompat]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="CLIENT"
+
+[[dependencies.mowziestrackscompat]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="CLIENT"
